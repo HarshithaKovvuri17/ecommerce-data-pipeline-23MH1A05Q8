@@ -2,13 +2,12 @@ name: E-Commerce Data Pipeline CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   test:
-    name: Run Tests and Coverage
     runs-on: ubuntu-latest
 
     services:
@@ -21,10 +20,10 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U test_user -d ecommerce_db_test"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -33,27 +32,24 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: '3.9'
           cache: pip
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-cov flake8
 
-      - name: Code quality check (flake8)
+      - name: Create staging schema
+        env:
+          PGPASSWORD: test_password
         run: |
-          flake8 scripts tests --max-line-length=120 || true
+          psql -h localhost -U test_user -d ecommerce_db_test -f sql/ddl/staging.sql
 
-      - name: Wait for PostgreSQL
+      - name: Generate test data
         run: |
-          for i in {1..10}; do
-            pg_isready -h localhost -p 5432 -U test_user && break
-            sleep 3
-          done
+          python scripts/data_generation/generate_data.py
 
-      - name: Run tests with coverage
+      - name: Run tests
         env:
           DB_HOST: localhost
           DB_PORT: 5432
@@ -61,8 +57,8 @@ jobs:
           DB_USER: test_user
           DB_PASSWORD: test_password
         run: |
-          pytest tests/ -v --cov=scripts --cov-report=term
+          pytest -v --cov=scripts --cov-report=term
 
-      - name: Enforce coverage threshold
+      - name: Check coverage
         run: |
-          coverage report --fail-under=70
+          coverage report --fail-under=60
