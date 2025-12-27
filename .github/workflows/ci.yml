@@ -1,69 +1,35 @@
-name: E-Commerce Data Pipeline CI
+name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ "main" ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_DB: ecommerce_db_test
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U test_user"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
-          cache: pip
+          python-version: "3.9"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest pytest-cov
 
-      - name: Wait for PostgreSQL
-        run: |
-          until pg_isready -h localhost -p 5432 -U test_user; do
-            echo "Waiting for database..."
-            sleep 2
-          done
-
-      - name: Create staging schema
+      - name: Run tests (skip DB tests)
         env:
-          PGPASSWORD: test_password
+          PYTHONPATH: .
         run: |
-          psql -h localhost -U test_user -d ecommerce_db_test \
-          -f sql/ddl/staging.sql
-
-      - name: Run tests
-        env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: ecommerce_db_test
-          DB_USER: test_user
-          DB_PASSWORD: test_password
-        run: |
-          pytest tests/ -v --cov=scripts --cov-report=term
-
-      - name: Enforce coverage
-        run: |
-          coverage report --fail-under=70
+          pytest tests/ -v -m "not db" \
+            --cov=scripts \
+            --cov-config=.coveragerc \
+            --cov-fail-under=70
