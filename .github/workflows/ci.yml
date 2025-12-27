@@ -2,14 +2,15 @@ name: E-Commerce Data Pipeline CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
+    # PostgreSQL service for tests
     services:
       postgres:
         image: postgres:14
@@ -26,30 +27,31 @@ jobs:
           --health-retries 5
 
     steps:
+      # Checkout repository
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Setup Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-          cache: pip
+          cache: 'pip'
 
+      # Install dependencies
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
 
+      # Create staging schema (IMPORTANT FIX)
       - name: Create staging schema
         env:
           PGPASSWORD: test_password
         run: |
           psql -h localhost -U test_user -d ecommerce_db_test -f sql/ddl/staging.sql
 
-      - name: Generate test data
-        run: |
-          python scripts/data_generation/generate_data.py
-
-      - name: Run tests
+      # Run tests with coverage
+      - name: Run pytest
         env:
           DB_HOST: localhost
           DB_PORT: 5432
@@ -57,8 +59,9 @@ jobs:
           DB_USER: test_user
           DB_PASSWORD: test_password
         run: |
-          pytest -v --cov=scripts --cov-report=term
+          pytest tests/ -v --cov=scripts --cov-report=term-missing
 
-      - name: Check coverage
+      # Enforce minimum coverage
+      - name: Enforce coverage threshold
         run: |
-          coverage report --fail-under=60
+          coverage report --fail-under=70
