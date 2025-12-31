@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
 
 jobs:
-  pipeline-tests:
+  test:
     runs-on: ubuntu-latest
 
     services:
@@ -47,45 +47,21 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Wait for PostgreSQL to be ready
+      - name: Wait for PostgreSQL
         run: |
           until pg_isready -h localhost -p 5432 -U test_user; do
             echo "Waiting for PostgreSQL..."
             sleep 2
           done
 
-      - name: Create database schemas and tables
+      - name: Create schemas and tables
         run: |
           psql -h localhost -U test_user -d ecommerce_db_test -f sql/ddl/staging.sql
-
-      # -----------------------------
-      # FULL PIPELINE EXECUTION
-      # -----------------------------
-
-      - name: Generate raw CSV data
-        run: |
-          python scripts/data_generation/generate_data.py
-
-      - name: Ingest data into staging schema
-        run: |
-          python scripts/ingestion/ingest_to_staging.py
-
-      - name: Transform staging to production
-        run: |
-          python scripts/transformation/staging_to_production.py
-
-      - name: Load warehouse tables
-        run: |
-          python scripts/transformation/load_warehouse.py
-
-      # -----------------------------
-      # TESTING & COVERAGE
-      # -----------------------------
 
       - name: Run unit tests with coverage
         run: |
           pytest tests/ -v --cov=scripts --cov-report=term-missing
 
-      - name: Enforce minimum coverage
+      - name: Enforce coverage threshold
         run: |
           coverage report --fail-under=70
