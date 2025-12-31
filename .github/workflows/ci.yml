@@ -38,11 +38,11 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Create test schemas
+      - name: Create schemas
         env:
           PGPASSWORD: test_password
         run: |
-          psql -h localhost -U test_user -d ecommerce_db_test -f sql/ddl/ci_test_setup.sql
+          psql -h localhost -U test_user -d ecommerce_db_test -f sql/ddl/staging.sql
 
       - name: Run tests with coverage
         env:
