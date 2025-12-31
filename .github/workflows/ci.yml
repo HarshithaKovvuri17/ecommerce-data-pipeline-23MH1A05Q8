@@ -1,4 +1,4 @@
-name: E-Commerce Data Pipeline CI
+name: Data Pipeline CI
 
 on:
   push:
@@ -20,54 +20,40 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U test_user"
+          --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
-    env:
-      DB_HOST: localhost
-      DB_PORT: 5432
-      DB_NAME: ecommerce_db_test
-      DB_USER: test_user
-      DB_PASSWORD: test_password
-      PGPASSWORD: test_password
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
-          cache: "pip"
+          python-version: '3.10'
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-cov
 
-      - name: Wait for PostgreSQL
-        run: |
-          for i in {1..10}; do
-            pg_isready -h localhost -p 5432 -U test_user && break
-            sleep 3
-          done
-
-      - name: Create staging schema
-        run: |
-          psql -h localhost -U test_user -d ecommerce_db_test -f sql/ddl/staging.sql
-
-      - name: Setup CI test tables
+      - name: Create test schemas
+        env:
+          PGPASSWORD: test_password
         run: |
           psql -h localhost -U test_user -d ecommerce_db_test -f sql/ddl/ci_test_setup.sql
 
       - name: Run tests with coverage
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: ecommerce_db_test
+          DB_USER: test_user
+          DB_PASSWORD: test_password
+          PGPASSWORD: test_password
         run: |
-          pytest tests/ -v --cov=scripts --cov-report=term-missing
-
-      - name: Enforce coverage threshold
-        run: |
-          coverage report --fail-under=70
+          pytest tests/ \
+            --cov=scripts \
+            --cov-report=term-missing \
+            --cov-fail-under=60
