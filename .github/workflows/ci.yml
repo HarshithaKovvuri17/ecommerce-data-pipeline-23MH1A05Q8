@@ -1,4 +1,4 @@
-name: E-Commerce Data Pipeline CI
+name: Ecommerce Data Pipeline CI
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test:
+  pipeline-tests:
     runs-on: ubuntu-latest
 
     services:
@@ -20,7 +20,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U test_user -d ecommerce_db_test"
+          --health-cmd="pg_isready -U test_user"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -31,38 +31,61 @@ jobs:
       DB_NAME: ecommerce_db_test
       DB_USER: test_user
       DB_PASSWORD: test_password
-      PGPASSWORD: test_password   # ⭐ THIS FIXES THE ERROR
+      PGPASSWORD: test_password
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
-          cache: "pip"
+          cache: pip
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Wait for PostgreSQL
+      - name: Wait for PostgreSQL to be ready
         run: |
           until pg_isready -h localhost -p 5432 -U test_user; do
             echo "Waiting for PostgreSQL..."
             sleep 2
           done
 
-      - name: Create schemas and staging tables
+      - name: Create database schemas and tables
         run: |
           psql -h localhost -U test_user -d ecommerce_db_test -f sql/ddl/staging.sql
+
+      # -----------------------------
+      # FULL PIPELINE EXECUTION
+      # -----------------------------
+
+      - name: Generate raw CSV data
+        run: |
+          python scripts/data_generation/generate_data.py
+
+      - name: Ingest data into staging schema
+        run: |
+          python scripts/ingestion/ingest_to_staging.py
+
+      - name: Transform staging to production
+        run: |
+          python scripts/transformation/staging_to_production.py
+
+      - name: Load warehouse tables
+        run: |
+          python scripts/transformation/load_warehouse.py
+
+      # -----------------------------
+      # TESTING & COVERAGE
+      # -----------------------------
 
       - name: Run unit tests with coverage
         run: |
           pytest tests/ -v --cov=scripts --cov-report=term-missing
 
-      - name: Enforce coverage threshold
+      - name: Enforce minimum coverage
         run: |
           coverage report --fail-under=70
