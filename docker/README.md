@@ -1,24 +1,22 @@
-def generate_docker_readme():
-    text = """
-Docker Deployment Guide – Ecommerce Data Pipeline
+# Docker Deployment Guide – Ecommerce Data Pipeline
 ================================================
 
 This document explains how to deploy, run, and manage the Ecommerce Data Pipeline
 using Docker and Docker Compose.
 
 ------------------------------------------------
-1. Prerequisites
+## 1. Prerequisites
 ------------------------------------------------
 
-Docker Requirements:
+### Docker Requirements:
 - Docker version 20.10 or higher
 - Docker Compose version 2.0 or higher
 
-Verify installation:
+### Verify installation:
 docker --version
 docker compose version
 
-System Requirements:
+### System Requirements:
 - Minimum 4 GB RAM
 - Minimum 10 GB free disk space
 - Supported OS:
@@ -27,7 +25,7 @@ System Requirements:
   - Windows (WSL2 recommended)
 
 ------------------------------------------------
-2. Quick Start Guide
+## 2. Quick Start Guide
 ------------------------------------------------
 
 Step 1: Build Docker Images
@@ -70,10 +68,10 @@ docker compose down -v
 docker system prune -f
 
 ------------------------------------------------
-3. Configuration
+## 3. Configuration
 ------------------------------------------------
 
-Environment Variables:
+### Environment Variables:
 Configured in docker-compose.yml
 
 - DB_HOST=postgres
@@ -98,10 +96,10 @@ Pipeline container limits:
 - Memory: 512 MB
 
 ------------------------------------------------
-4. Troubleshooting
+##  4. Troubleshooting
 ------------------------------------------------
 
-Port Already in Use:
+### Port Already in Use:
 Error:
 bind: address already in use
 
@@ -109,7 +107,7 @@ Solution:
 - Stop local PostgreSQL service
 - Or change exposed port in docker-compose.yml
 
-Database Not Ready:
+### Database Not Ready:
 Cause:
 Pipeline starts before database
 
@@ -117,14 +115,14 @@ Solution:
 - Healthcheck configured for PostgreSQL
 - depends_on with condition service_healthy
 
-Volume Permission Issues:
+### Volume Permission Issues:
 Error:
 Permission denied
 
 Solution:
 sudo chown -R $USER:$USER data logs
 
-Container Fails to Start:
+### Container Fails to Start:
 Check logs:
 docker compose logs pipeline
 
@@ -134,7 +132,7 @@ Ensure:
 - Services are on the same Docker network
 
 ------------------------------------------------
-5. Data Persistence Verification
+### 5. Data Persistence Verification
 ------------------------------------------------
 
 Step 1: Stop containers
@@ -149,7 +147,7 @@ Result:
 - Logs persist across restarts
 
 ------------------------------------------------
-Conclusion
+## Conclusion
 ------------------------------------------------
 
 This Docker deployment ensures:
