@@ -43,6 +43,7 @@ BI Dashboards (Power BI / Tableau)
 
 ## Project Structure
 
+```
 ecommerce-data-pipeline/
 ├── config/
 │   └── database.py
@@ -83,6 +84,7 @@ ecommerce-data-pipeline/
 ├── requirements.txt
 ├── README.md
 └── SUBMISSION.md
+```
 
 ---
 
