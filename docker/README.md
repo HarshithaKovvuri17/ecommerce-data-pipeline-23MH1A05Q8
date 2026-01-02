@@ -1,5 +1,4 @@
 # Docker Deployment Guide – Ecommerce Data Pipeline
-================================================
 
 This document explains how to deploy, run, and manage the Ecommerce Data Pipeline
 using Docker and Docker Compose.
